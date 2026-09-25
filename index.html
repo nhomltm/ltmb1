@@ -108,6 +108,8 @@
 
     <div class="turn-indicator" id="turn-indicator">ĐANG CHỜ....</div>
 
+    <div id="toast-container"></div>
+
     <div class="rules-panel">
       <h4>📖 LUẬT CHƠI</h4>
       <ul>
@@ -121,17 +123,11 @@
       </ul>
     </div>
 
-    <div id="debug-panel" style="display:none; position: fixed; bottom: 60px; right: 10px; background: rgba(0,0,0,0.85); color: #0f0; padding: 10px; border-radius: 8px; font-size: 11px; max-width: 320px; max-height: 200px; overflow-y: auto; z-index: 999; border: 1px solid #333; font-family: monospace;">
-      <div style="font-weight: bold; margin-bottom: 5px; color: #fff;">DEBUG</div>
-      <div id="debug-log"></div>
-    </div>
-
     <footer class="game-footer">
       <span>Room: <span id="room-display-footer"></span></span>
       <span>👥 <span id="player-count">0</span>/2</span>
       <span>Turn: <span id="turn-count">0</span></span>
       <button id="reset-btn" style="display:none">🔄 Chơi lại</button>
-      <button id="debug-toggle" style="display:none; padding: 6px 10px; font-size: 12px;">🐞 Debug</button>
     </footer>
   </div>
 

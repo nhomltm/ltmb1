@@ -56,7 +56,8 @@ function createInitialState(roomId) {
 
   return {
     room: roomId,
-    players: [],
+    players: {},
+    playerOrder: [],
     board,
     pieces,
     currentPlayer: 1,
@@ -105,19 +106,7 @@ function getLegalMovesForPiece(state, pieceId) {
 
 function validateMove(state, pieceId, toRow, toCol) {
   const piece = state.pieces[pieceId];
-  debugLog('validateMove piece=' + pieceId + ' to=' + toRow + ',' + toCol + ' piecePlayer=' + (piece ? piece.player : 'null') + ' current=' + state.currentPlayer);
-  if (!piece) return {valid: false, reason: "Quân không tồn tại"};
-  if (state.gameStatus !== "playing") return {valid: false, reason: "Game chưa bắt đầu"};
 
-  const myPlayer = state.players.find(p => p.id === myPlayerId);
-  if (!myPlayer || myPlayer.playerNumber !== state.currentPlayer) {
-    debugLog('validateMove rejected: not your turn my=' + (myPlayer ? myPlayer.playerNumber : 'null') + ' current=' + state.currentPlayer);
-    return {valid: false, reason: "Không phải lượt của bạn"};
-  }
-  if (piece.player !== myPlayer.playerNumber) {
-    debugLog('validateMove rejected: not your piece');
-    return {valid: false, reason: "Đây không phải quân của bạn"};
-  }
 
   if (!isInsideBoard(toRow, toCol)) return {valid: false, reason: "Nằm ngoài bàn cờ"};
 
@@ -145,31 +134,28 @@ function validateMove(state, pieceId, toRow, toCol) {
 }
 
 function executeMove(draft, pieceId, toRow, toCol) {
-  debugLog('executeMove start: ' + pieceId + ' to ' + toRow + ',' + toCol);
+
   const piece = draft.pieces[pieceId];
   const fromRow = piece.row;
   const fromCol = piece.col;
 
-  const newBoard = draft.board.map(r => [...r]);
+  const newBoard = draft.board.map(row => [...row]);
   newBoard[fromRow][fromCol] = null;
 
   const targetId = newBoard[toRow][toCol];
   let captured = null;
-  const newPieces = { ...draft.pieces };
   if (targetId) {
-    captured = newPieces[targetId];
-    delete newPieces[targetId];
+    captured = draft.pieces[targetId];
+    delete draft.pieces[targetId];
   }
 
-  const newPiece = { ...piece, row: toRow, col: toCol };
-  newPieces[pieceId] = newPiece;
+  piece.row = toRow;
+  piece.col = toCol;
   newBoard[toRow][toCol] = pieceId;
-
   draft.board = newBoard;
-  draft.pieces = newPieces;
 
   const opponent = piece.player === 1 ? 2 : 1;
-  const opponentPieces = Object.values(newPieces).filter(p => p.player === opponent);
+  const opponentPieces = Object.values(draft.pieces).filter(p => p.player === opponent);
   const typesPresent = new Set(opponentPieces.map(p => p.type));
   const missingType = ['dam', 'la', 'keo'].find(t => !typesPresent.has(t));
 
@@ -194,7 +180,7 @@ function executeMove(draft, pieceId, toRow, toCol) {
     draft.turnNumber++;
   }
 
-  debugLog('executeMove done, status=' + draft.gameStatus + ' current=' + draft.currentPlayer);
+
   return {success: true, captured};
 }
 
@@ -202,7 +188,7 @@ function executeMove(draft, pieceId, toRow, toCol) {
 function renderBoard() {
   const boardEl = document.getElementById('board');
   if (!boardEl) {
-    debugLog('renderBoard missing #board');
+
     return;
   }
 
@@ -273,22 +259,23 @@ function renderCoordinates() {
 
 function renderPlayerPanels() {
   const state = gameData.getData();
-  debugLog('renderPlayerPanels players=' + JSON.stringify(state.players));
+
 
   ['p1', 'p2'].forEach((p, idx) => {
     const playerNum = idx + 1;
     const panel = document.getElementById(`player${playerNum}-panel`);
     const nameEl = document.getElementById(`${p}-name`);
 
-    debugLog('renderPlayerPanels check ' + p + ' panel=' + !!panel + ' name=' + !!nameEl);
+
 
     if (!panel || !nameEl) {
-      debugLog('renderPlayerPanels missing elements for: ' + p + ' panel=' + !!panel + ' name=' + !!nameEl);
+
       return;
     }
 
-    const player = state.players.find(pl => pl.playerNumber === playerNum);
-    debugLog('renderPlayerPanels playerNum=' + playerNum + ' found=' + !!player + ' name=' + (player ? player.name : 'null'));
+    const playerId = state.playerOrder[idx];
+    const player = playerId ? state.players[playerId] : null;
+
     nameEl.textContent = player ? player.name : 'Đang chờ...';
 
     ['dam', 'la', 'keo'].forEach(type => {
@@ -302,7 +289,7 @@ function renderPlayerPanels() {
 
   const playerCountEl = document.getElementById('player-count');
   const turnCountEl = document.getElementById('turn-count');
-  if (playerCountEl) playerCountEl.textContent = state.players.length;
+  if (playerCountEl) playerCountEl.textContent = state.playerOrder.length;
   if (turnCountEl) turnCountEl.textContent = state.turnNumber;
 }
 
@@ -319,7 +306,7 @@ function renderTurnIndicator() {
     indicator.className = 'turn-indicator winner';
   } else {
     if (myPlayerNumber === null) {
-      indicator.textContent = '👀 BẠNG QUAN SÁT';
+      indicator.textContent = '👀 BẠN ĐANG QUAN SÁT';
       indicator.className = 'turn-indicator waiting';
     } else if (state.currentPlayer === myPlayerNumber) {
       indicator.textContent = '🎯 ĐẾN LƯỢT BẠN';
@@ -347,35 +334,58 @@ function renderAll() {
     if (roomDisplay) roomDisplay.textContent = currentRoomId;
     if (roomDisplayFooter) roomDisplayFooter.textContent = currentRoomId;
   } catch (err) {
-    debugLog('renderAll error: ' + (err?.message || err));
+
   }
 }
 
-function showError(msg) {
-  const indicator = document.getElementById('turn-indicator');
-  indicator.textContent = `❌ ${msg}`;
-  indicator.className = 'turn-indicator error';
+function showToast(message, type = 'error') {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.textContent = message;
+  container.appendChild(toast);
+
+  requestAnimationFrame(() => {
+    toast.classList.add('show');
+  });
+
   setTimeout(() => {
-    renderTurnIndicator();
-  }, 2000);
+    toast.classList.remove('show');
+    setTimeout(() => {
+      if (toast.parentNode) {
+        toast.parentNode.removeChild(toast);
+      }
+    }, 300);
+  }, 2500);
+}
+
+function showError(msg) {
+  showToast(msg, 'error');
+}
+
+function showCaptureMessage(pieceName, capturedName) {
+  const message = `Ăn được quân ${capturedName} của đối phương!`;
+  showToast(message, 'capture');
 }
 
 // ==================== EVENT HANDLERS ====================
 function onCellClick(row, col) {
   const state = gameData.getData();
-  debugLog('onCellClick row=' + row + ' col=' + col + ' status=' + state.gameStatus + ' currentPlayer=' + state.currentPlayer + ' myPlayerNumber=' + myPlayerNumber);
+
   if (state.gameStatus !== 'playing') {
-    debugLog('onCellClick rejected: not playing');
+
     return;
   }
 
   const clickedPieceId = state.board[row][col];
-  debugLog('onCellClick clickedPieceId=' + clickedPieceId + ' selected=' + selectedPieceId + ' validMoves=' + validMoves.length);
+
 
   if (selectedPieceId) {
     const moveInfo = validMoves.find(m => m.row === row && m.col === col);
     if (moveInfo) {
-      debugLog('onCellClick making move: ' + selectedPieceId + ' to ' + row + ',' + col);
+
       makeMove(selectedPieceId, row, col);
       selectedPieceId = null;
       validMoves = [];
@@ -385,12 +395,11 @@ function onCellClick(row, col) {
 
     if (clickedPieceId && state.pieces[clickedPieceId]) {
       const piece = state.pieces[clickedPieceId];
-      const myPlayer = state.players.find(p => p.id === myPlayerId);
-      debugLog('onCellClick checking piece: player=' + piece.player + ' myPlayerNum=' + (myPlayer ? myPlayer.playerNumber : 'null') + ' current=' + state.currentPlayer);
-      if (myPlayer && piece.player === myPlayer.playerNumber && state.currentPlayer === piece.player) {
+
+      if (piece.player === myPlayerNumber && state.currentPlayer === myPlayerNumber) {
         selectedPieceId = clickedPieceId;
         validMoves = getLegalMovesForPiece(state, clickedPieceId);
-        debugLog('onCellClick selected new piece, validMoves=' + validMoves.length);
+
         renderAll();
         return;
       }
@@ -398,56 +407,62 @@ function onCellClick(row, col) {
 
     selectedPieceId = null;
     validMoves = [];
-    debugLog('onCellClick deselected');
+
     renderAll();
     return;
   }
 
   if (clickedPieceId && state.pieces[clickedPieceId]) {
     const piece = state.pieces[clickedPieceId];
-    const myPlayer = state.players.find(p => p.id === myPlayerId);
-    debugLog('onCellClick selecting piece: player=' + piece.player + ' myPlayerNum=' + (myPlayer ? myPlayer.playerNumber : 'null') + ' current=' + state.currentPlayer);
-    if (myPlayer && piece.player === myPlayer.playerNumber && state.currentPlayer === piece.player) {
+
+    if (piece.player === myPlayerNumber && state.currentPlayer === myPlayerNumber) {
       selectedPieceId = clickedPieceId;
       validMoves = getLegalMovesForPiece(state, clickedPieceId);
-      debugLog('onCellClick piece selected, validMoves=' + validMoves.length);
+
       renderAll();
     } else {
-      debugLog('onCellClick rejected: not your piece or not your turn');
+
     }
   }
 }
 
 function makeMove(pieceId, toRow, toCol) {
-  debugLog('makeMove start: ' + pieceId + ' to ' + toRow + ',' + toCol);
   const state = gameData.getData();
   const validation = validateMove(state, pieceId, toRow, toCol);
-  debugLog('makeMove validation: ' + JSON.stringify(validation));
+
   if (!validation.valid) {
     showError(validation.reason);
     return;
   }
 
-  debugLog('makeMove executing...');
+  const targetId = state.board[toRow][toCol];
+  const capturedPiece = targetId ? state.pieces[targetId] : null;
+
   gameData.setData((draft) => {
     executeMove(draft, pieceId, toRow, toCol);
   });
-  debugLog('makeMove setData called');
+
+  if (capturedPiece) {
+    const typeNames = {dam: 'Đấm', la: 'Lá', keo: 'Kéo'};
+    showCaptureMessage(typeNames[capturedPiece.type]);
+  }
+
+  renderAll();
 }
 
     function joinGame() {
       if (!gameData) return;
 
       const nameInput = document.getElementById('player-name');
-      const name = nameInput.value.trim() || `Player ${gameData.getData().players.length + 1}`;
-      debugLog('joinGame, name: ' + name + ', myPlayerId: ' + myPlayerId);
+      const name = nameInput.value.trim() || `Player ${gameData.getData().playerOrder.length + 1}`;
+
 
       gameData.setData((draft) => {
-        const existing = draft.players.find(p => p.id === myPlayerId);
-        debugLog('joinGame existing: ' + JSON.stringify(existing) + ', players count: ' + draft.players.length);
+        const existing = draft.players[myPlayerId];
+
         if (existing) return;
 
-        if (draft.players.length >= 2) return;
+        if (draft.playerOrder.length >= 2) return;
 
         const newPlayer = {
           id: myPlayerId,
@@ -455,22 +470,21 @@ function makeMove(pieceId, toRow, toCol) {
           joinedAt: Date.now()
         };
 
-        const newPlayers = [...draft.players, newPlayer]
-          .sort((a, b) => a.joinedAt - b.joinedAt)
-          .map((p, i) => ({ ...p, playerNumber: i + 1 }));
+        draft.players[myPlayerId] = newPlayer;
+        draft.playerOrder.push(myPlayerId);
 
-        draft.players = newPlayers;
-
-        if (newPlayers.length === 2) {
+        if (draft.playerOrder.length === 2) {
           draft.gameStatus = "playing";
           draft.currentPlayer = 1;
         }
-        debugLog('joinGame updated draft players: ' + JSON.stringify(newPlayers.map(p => ({id: p.id, name: p.name, playerNumber: p.playerNumber}))));
+
       });
 
       const state = gameData.getData();
-      debugLog('joinGame state after setData players: ' + JSON.stringify(state.players));
-      myPlayerNumber = state.players.find(p => p.id === myPlayerId)?.playerNumber || null;
+
+      const myIndex = state.playerOrder.indexOf(myPlayerId);
+      myPlayerNumber = myIndex >= 0 ? myIndex + 1 : null;
+
       showGameScreen();
       renderAll();
     }
@@ -478,18 +492,8 @@ function makeMove(pieceId, toRow, toCol) {
     function resetGame() {
       if (!gameData) return;
 
-      gameData.setData((draft) => {
-        draft.players = draft.players.map((p, i) => ({ ...p, playerNumber: i + 1 }));
-
-        const newState = createInitialState(draft.room);
-        draft.board = newState.board;
-        draft.pieces = newState.pieces;
-        draft.currentPlayer = 1;
-        draft.gameStatus = "playing";
-        draft.winner = null;
-        draft.winnerReason = null;
-        draft.turnNumber = 0;
-      });
+      const newState = createInitialState(currentRoomId);
+      gameData.setData(newState);
 
       selectedPieceId = null;
       validMoves = [];
@@ -503,7 +507,7 @@ function showScreen(id) {
   if (el) {
     el.classList.add('active');
   } else {
-    debugLog('showScreen missing element: ' + id);
+
   }
 }
 
@@ -515,61 +519,43 @@ function showGameScreen() {
   if (roomDisplayFooter) roomDisplayFooter.textContent = currentRoomId;
 }
 
-// ==================== DEBUG LOG ====================
-const DEBUG_PANEL_ID = 'debug-panel';
-const DEBUG_LOG_ID = 'debug-log';
 
-function debugLog(msg) {
-  const panel = document.getElementById(DEBUG_PANEL_ID);
-  const logEl = document.getElementById(DEBUG_LOG_ID);
-  if (!panel || !logEl) {
-    console.log('[OTTv2]', msg);
-    return;
-  }
-  panel.style.display = 'block';
-  const time = new Date().toLocaleTimeString();
-  const line = document.createElement('div');
-  line.textContent = `[${time}] ${msg}`;
-  logEl.appendChild(line);
-  logEl.scrollTop = logEl.scrollHeight;
-  console.log('[OTTv2]', msg);
-}
 async function initGame() {
-  debugLog('initGame start, room: ' + currentRoomId);
+
   try {
-    debugLog('calling playhtml.init...');
+
     await playhtml.init({
       room: currentRoomId
     });
-    debugLog('playhtml.init done');
-    debugLog('roomId: ' + (playhtml.roomId || 'unknown'));
+
+
 
     await playhtml.ready;
-    debugLog('playhtml.ready resolved');
+
 
     const initialState = createInitialState(currentRoomId);
-    debugLog('initialState created');
+
 
     gameData = playhtml.createPageData("ottv2-game", initialState);
-    debugLog('pageData created');
+
 
     let state = gameData.getData();
-    debugLog('current pageData keys: ' + (state ? Object.keys(state).join(',') : 'null'));
+
 
     if (!state || !state.board) {
-      debugLog('no board found, set initial state');
+
       gameData.setData(initialState);
       state = initialState;
     }
 
     gameData.onUpdate((newState) => {
-      debugLog('onUpdate fired, status: ' + (newState?.gameStatus || '?') + ', currentPlayer: ' + (newState?.currentPlayer || '?'));
+
       selectedPieceId = null;
       validMoves = [];
       try {
         renderAll();
       } catch (err) {
-        debugLog('renderAll error: ' + (err?.message || err));
+
       }
     });
 
@@ -578,21 +564,22 @@ async function initGame() {
       myPlayerId = 'p-' + Math.random().toString(36).substring(2, 11);
       sessionStorage.setItem('ottv2-player-id', myPlayerId);
     }
-    debugLog('myPlayerId: ' + myPlayerId);
 
-    const existingPlayer = state.players.find(p => p.id === myPlayerId);
-    debugLog('existingPlayer: ' + JSON.stringify(existingPlayer));
+
+    const existingPlayer = state.players[myPlayerId];
+
 
     try {
       if (existingPlayer) {
-        myPlayerNumber = existingPlayer.playerNumber;
+        const myIndex = state.playerOrder.indexOf(myPlayerId);
+        myPlayerNumber = myIndex >= 0 ? myIndex + 1 : null;
         showGameScreen();
         renderAll();
       } else {
         showScreen('lobby');
       }
     } catch (err) {
-      debugLog('screen render error: ' + (err?.message || err));
+
       const statusEl = document.getElementById('lobby-status');
       if (statusEl) {
         statusEl.textContent = 'Lỗi giao diện: ' + (err?.message || err);
@@ -602,7 +589,7 @@ async function initGame() {
     }
 
   } catch (err) {
-    debugLog('PlayHTML init failed: ' + (err?.message || err));
+
     console.error('[OTTv2] PlayHTML init failed:', err);
     const statusEl = document.getElementById('lobby-status');
     if (statusEl) {
@@ -648,18 +635,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('join-btn').addEventListener('click', joinGame);
   document.getElementById('reset-btn').addEventListener('click', resetGame);
-
-  const debugToggle = document.getElementById('debug-toggle');
-  if (debugToggle) {
-    debugToggle.style.display = 'inline-block';
-    debugToggle.addEventListener('click', () => {
-      const panel = document.getElementById('debug-panel');
-      if (panel) {
-        const isHidden = panel.style.display === 'none';
-        panel.style.display = isHidden ? 'block' : 'none';
-      }
-    });
-  }
 
   document.getElementById('player-name').addEventListener('keypress', (e) => {
     if (e.key === 'Enter') joinGame();
