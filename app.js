@@ -58,6 +58,7 @@ function createInitialState(roomId) {
     room: roomId,
     players: {},
     playerOrder: [],
+    spectators: [],
     board,
     pieces,
     currentPlayer: 1,
@@ -323,6 +324,7 @@ function renderAll() {
     renderBoard();
     renderPlayerPanels();
     renderTurnIndicator();
+    renderSpectators();
 
     const state = gameData.getData();
     const resetBtn = document.getElementById('reset-btn');
@@ -336,6 +338,20 @@ function renderAll() {
   } catch (err) {
 
   }
+}
+
+function renderSpectators() {
+  const state = gameData.getData();
+  const el = document.getElementById('spectator-info');
+  if (!el) return;
+
+  if (!state.spectators || state.spectators.length === 0) {
+    el.textContent = '';
+    return;
+  }
+
+  const names = state.spectators.map(s => s.name).join(', ');
+  el.textContent = `👁️ ${names}`;
 }
 
 function showToast(message, type = 'error') {
@@ -456,13 +472,22 @@ function makeMove(pieceId, toRow, toCol) {
       const nameInput = document.getElementById('player-name');
       const name = nameInput.value.trim() || `Player ${gameData.getData().playerOrder.length + 1}`;
 
-
       gameData.setData((draft) => {
         const existing = draft.players[myPlayerId];
 
         if (existing) return;
 
-        if (draft.playerOrder.length >= 2) return;
+        if (draft.playerOrder.length >= 2) {
+          const alreadySpectating = draft.spectators.some(s => s.id === myPlayerId);
+          if (alreadySpectating) return;
+
+          draft.spectators.push({
+            id: myPlayerId,
+            name: name,
+            joinedAt: Date.now()
+          });
+          return;
+        }
 
         const newPlayer = {
           id: myPlayerId,
@@ -484,6 +509,10 @@ function makeMove(pieceId, toRow, toCol) {
 
       const myIndex = state.playerOrder.indexOf(myPlayerId);
       myPlayerNumber = myIndex >= 0 ? myIndex + 1 : null;
+
+      if (!myPlayerNumber && state.spectators.some(s => s.id === myPlayerId)) {
+        showToast(`Bạn đang xem trận đấu với tên ${name}`, 'info');
+      }
 
       showGameScreen();
       renderAll();
