@@ -241,6 +241,56 @@ body {
   text-align: center;
 }
 
+/* ==================== MODE SELECT ==================== */
+.mode-select {
+  display: flex;
+  gap: 12px;
+}
+
+.mode-card {
+  flex: 1;
+  padding: 16px 12px;
+  border-radius: 14px;
+  border: 2px solid var(--border-light);
+  background: #f7fafc;
+  cursor: pointer;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s;
+}
+
+.mode-card:hover {
+  border-color: var(--accent-blue);
+  background: #ebf8ff;
+}
+
+.mode-card.selected {
+  border-color: var(--accent-blue);
+  background: #ebf8ff;
+  box-shadow: 0 0 0 2px rgba(49, 130, 206, 0.2);
+}
+
+.mode-card .mode-icon {
+  font-size: 1.8rem;
+  line-height: 1;
+  margin-bottom: 2px;
+}
+
+.mode-card .mode-title {
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  letter-spacing: 0.5px;
+}
+
+.mode-card .mode-desc {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+}
+
 /* ==================== GAME HEADER ==================== */
 .game-header {
   width: 100%;
@@ -269,13 +319,24 @@ body {
 .room-info {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 14px;
   font-size: 0.9rem;
   color: var(--text-secondary);
 }
 
 .room-info strong {
   color: var(--text-primary);
+}
+
+.back-link {
+  color: var(--accent-blue);
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.back-link:hover {
+  text-decoration: underline;
 }
 
 /* ==================== GAME MAIN ==================== */
@@ -699,6 +760,214 @@ body {
   border-color: var(--accent-blue);
 }
 
+/* ==================== ARENA (chế độ 4 bàn) ==================== */
+#arena {
+  padding-bottom: 30px;
+}
+
+.arena-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  width: 100%;
+  max-width: 920px;
+  margin: 20px auto;
+  padding: 0 20px;
+}
+
+.board-panel {
+  background: var(--bg-card);
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border-light);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.board-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.board-panel-title {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  letter-spacing: 0.5px;
+}
+
+.board-panel-code {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  font-family: monospace;
+}
+
+.mini-players {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  gap: 8px;
+}
+
+.mini-player {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.mini-player.p2 {
+  text-align: right;
+  align-items: flex-end;
+}
+
+.mini-player-name {
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+}
+
+.mini-piece-counts {
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+}
+
+.mini-board {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  grid-template-rows: repeat(9, 1fr);
+  gap: 1px;
+  background: #cbd5e0;
+  border-radius: 10px;
+  overflow: hidden;
+  width: 100%;
+  aspect-ratio: 1;
+  border: 2px solid #a0aec0;
+}
+
+.mini-board .cell {
+  aspect-ratio: 1;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  cursor: pointer;
+}
+
+.mini-board .cell:hover {
+  background: #ebf8ff;
+}
+
+.mini-board .cell.goal {
+  background: #fefcbf;
+}
+
+.mini-board .cell.selected {
+  background: #bee3f8 !important;
+  box-shadow: inset 0 0 0 2px var(--accent-blue);
+}
+
+.mini-board .cell.valid-move::after {
+  content: '';
+  position: absolute;
+  width: 35%;
+  height: 35%;
+  background: rgba(56, 161, 105, 0.7);
+  border-radius: 50%;
+}
+
+.mini-board .cell.capture-move::after {
+  content: '';
+  position: absolute;
+  width: 35%;
+  height: 35%;
+  background: rgba(229, 62, 62, 0.8);
+  border-radius: 50%;
+}
+
+.mini-board .piece {
+  font-size: clamp(0.55rem, 1.8vw, 1.05rem);
+  line-height: 1;
+}
+
+.board-panel-turn {
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 6px;
+  border-radius: 8px;
+  background: #f7fafc;
+  color: var(--accent-blue);
+}
+
+.board-panel-turn.my-turn {
+  color: var(--success-color);
+  background: #f0fff4;
+}
+
+.board-panel-turn.opponent-turn {
+  color: var(--warning-color);
+  background: #fffaf0;
+}
+
+.board-panel-turn.winner {
+  color: var(--goal-color);
+  background: #fffff0;
+}
+
+.board-panel-turn.waiting {
+  color: var(--accent-blue);
+}
+
+.board-panel-footer {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.join-board-btn,
+.reset-board-btn {
+  padding: 7px 16px;
+  border-radius: 8px;
+  border: none;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 0.3px;
+  transition: transform 0.15s;
+}
+
+.join-board-btn {
+  background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+  color: #fff;
+}
+
+.join-board-btn:hover,
+.reset-board-btn:hover {
+  transform: translateY(-1px);
+}
+
+.reset-board-btn {
+  background: #f7fafc;
+  border: 1px solid var(--border-light);
+  color: var(--text-primary);
+}
+
+.spectator-info-mini {
+  text-align: center;
+  font-size: 0.7rem;
+  color: var(--accent-blue);
+  font-style: italic;
+  min-height: 1em;
+}
+
 /* ==================== RESPONSIVE ==================== */
 @media (max-width: 1024px) {
   .game-main {
@@ -734,6 +1003,17 @@ body {
   .board {
     width: min(90vw, 500px);
     height: min(90vw, 500px);
+  }
+}
+
+@media (max-width: 700px) {
+  .arena-grid {
+    grid-template-columns: 1fr;
+    max-width: 460px;
+  }
+
+  .mode-select {
+    flex-direction: column;
   }
 }
 

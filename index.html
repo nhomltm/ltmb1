@@ -21,7 +21,7 @@
   <div id="lobby" class="screen">
     <div class="lobby-card">
       <h1>OẲN TÙ TÌ V2</h1>
-      <p class="subtitle">9×9 STRATEGY BATTLE</p>
+      <p class="subtitle">CHỌN CHẾ ĐỘ • BẮT ĐẦU TRẬN ĐẤU</p>
 
       <div class="form-group">
         <label>Tên của bạn</label>
@@ -29,10 +29,26 @@
       </div>
 
       <div class="form-group">
-        <label>Room ID</label>
+        <label>Chọn chế độ chơi</label>
+        <div class="mode-select">
+          <div class="mode-card selected" data-mode="2p">
+            <span class="mode-icon">⚔️</span>
+            <span class="mode-title">2 NGƯỜI CHƠI</span>
+            <span class="mode-desc">1 bàn cờ, đấu 1 vs 1</span>
+          </div>
+          <div class="mode-card" data-mode="arena">
+            <span class="mode-icon">🏟️</span>
+            <span class="mode-title">ĐẤU TRƯỜNG 4 BÀN</span>
+            <span class="mode-desc">4 bàn cờ, 8 người chơi</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Mã phòng</label>
         <div class="room-input-group">
           <input type="text" id="room-id" placeholder="Room ID" readonly>
-          <button id="generate-room" title="Tạo room mới">🔄</button>
+          <button id="generate-room" title="Tạo mã mới">🔄</button>
         </div>
         <button id="copy-link" class="secondary-btn">📋 Sao chép link phòng</button>
       </div>
@@ -43,11 +59,12 @@
     </div>
   </div>
 
-  <!-- Game Screen -->
+  <!-- Game Screen: 2 người chơi -->
   <div id="game" class="screen">
     <header class="game-header">
       <h1>OẲN TÙ TÌ V2</h1>
       <div class="room-info">
+        <a href="?" id="back-link" class="back-link">← Đổi chế độ</a>
         <span>Room: <strong id="room-display"></strong></span>
       </div>
     </header>
@@ -108,8 +125,6 @@
 
     <div class="turn-indicator" id="turn-indicator">ĐANG CHỜ....</div>
 
-    <div id="toast-container"></div>
-
     <div class="rules-panel">
       <h4>📖 LUẬT CHƠI</h4>
       <ul>
@@ -131,6 +146,22 @@
       <button id="reset-btn" style="display:none">🔄 Chơi lại</button>
     </footer>
   </div>
+
+  <!-- Arena Screen: 4 bàn / 8 người chơi -->
+  <div id="arena" class="screen">
+    <header class="game-header">
+      <h1>OẲN TÙ TÌ V2 — ĐẤU TRƯỜNG</h1>
+      <div class="room-info">
+        <a href="?" id="arena-back-link" class="back-link">← Đổi chế độ</a>
+        <span>Room: <strong id="arena-room-display"></strong></span>
+      </div>
+    </header>
+
+    <div class="arena-grid" id="arena-grid"></div>
+  </div>
+
+  <!-- Toast dùng chung cho mọi màn hình (position: fixed) -->
+  <div id="toast-container"></div>
 
   <script type="module" src="app.js"></script>
 </body>
