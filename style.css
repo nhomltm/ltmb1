@@ -484,6 +484,31 @@ body {
   transition: transform 0.15s;
   line-height: 1;
   user-select: none;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.piece::before {
+  content: '';
+  position: absolute;
+  inset: -15%;
+  border-radius: 50%;
+  z-index: -1;
+  transition: transform 0.15s;
+}
+
+.piece.player1::before {
+  background: rgba(49, 130, 206, 0.12);
+}
+
+.piece.player2::before {
+  background: rgba(229, 62, 62, 0.12);
+}
+
+.cell:hover .piece::before {
+  transform: scale(1.1);
 }
 
 .piece.player1 {
